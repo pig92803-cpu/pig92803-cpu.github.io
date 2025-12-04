@@ -172,7 +172,7 @@
                 indigenous: "【高山的堅守與平原的消逝】山區的「拉阿魯哇」、「卡那卡那富」族敬畏自然，延續著古老聖貝祭與米貢祭的智慧。平原區的「馬卡道族」則經歷清代「劃界封山」的政策，土地流失，文化被逼邊緣化，直至近年才重啟正名與復振。",
                 dutch: "【打狗漁村】荷蘭人主要在此進行漁業活動。",
                 qing: "【打狗開港】開港通商後，外商聚集旗後，設領事館與海關。",
-                resistance: "【林少貓】抗日三猛之一，於大屯山區一帶進行游擊戰，勢力範圍在鳳山、潮州一帶，長期與日軍對峙，後遭日軍誘殺。",
+                resistance: "【林少貓】抗日三猛之一，勢力範圍在鳳山、潮州一帶，長期與日軍對峙，後遭日軍誘殺。",
                 japanese: "【南進基地】大規模築港工程，發展重工業與軍事基地，城市快速擴張。",
                 modern: "【工業轉型】石化重工重鎮，近年轉型發展高科技產業與亞洲新灣區。"
             },
@@ -500,51 +500,32 @@
             const [loading, setLoading] = useState(true);
             const [selectedCounty, setSelectedCounty] = useState(null);
             const [hoveredCounty, setHoveredCounty] = useState(null);
-            
-            // 新增：控制 16 族介紹視窗開關
             const [showTribesModal, setShowTribesModal] = useState(false);
-            // 新增：控制圖片放大顯示的 URL
             const [enlargedImage, setEnlargedImage] = useState(null);
-
-            // Gemini Q&A State
             const [question, setQuestion] = useState('');
             const [qnaLoading, setQnaLoading] = useState(false);
             const [historyQnA, setHistoryQnA] = useState([
                 { role: 'model', text: '你好！我是你的 AI 歷史導遊。關於這片土地的故事，有什麼想問的嗎？' }
             ]);
-
-            // 地圖視角控制狀態
             const [scale, setScale] = useState(1);
             const [translate, setTranslate] = useState({ x: 0, y: 0 });
             const [isDragging, setIsDragging] = useState(false);
             const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-            
-            const hasMovedRef = useRef(false);
-
-            // 模式切換 (general | history)
-            const [mode, setMode] = useState('general'); 
-            // 當前選中的歷史時期
+            const [mode, setMode] = useState('general');
             const [selectedPeriod, setSelectedPeriod] = useState('indigenous');
 
             const svgRef = useRef(null);
             const containerRef = useRef(null);
             const qnaScrollRef = useRef(null);
+            const hasMovedRef = useRef(false);
 
-            // 決定當前要顯示資訊的縣市 (Hover 優先，其次是 Selected)
-            const displayCounty = hoveredCounty || selectedCounty;
+            // API Key for Gemini (Please insert your API key here if you have one)
+            const apiKey = ""; 
 
-            // 自動捲動對話框
-            useEffect(() => {
-                if (qnaScrollRef.current) {
-                    qnaScrollRef.current.scrollTop = qnaScrollRef.current.scrollHeight;
-                }
-            }, [historyQnA, showTribesModal]);
-
-            // 載入地圖資料
             useEffect(() => {
                 const loadData = async () => {
                     try {
-                        // 這裡使用 unpkg 載入 topojson 和 d3
+                         // Simulate topojson and d3 loading if not present (already loaded via script tags)
                         const response = await fetch('https://unpkg.com/taiwan-atlas/counties-10t.json');
                         const topology = await response.json();
                         const geojson = topojson.feature(topology, topology.objects.counties);
@@ -558,72 +539,57 @@
                 loadData();
             }, []);
 
-            // Gemini API 呼叫函式
+            useEffect(() => {
+                if (qnaScrollRef.current) {
+                    qnaScrollRef.current.scrollTop = qnaScrollRef.current.scrollHeight;
+                }
+            }, [historyQnA, showTribesModal]);
+
             const handleAskLLM = async () => {
                 if (!question.trim()) return;
+                if (!apiKey) {
+                    setHistoryQnA(prev => [...prev, { role: 'user', text: question }, { role: 'model', text: "請先設定 API Key 才能使用 AI 問答功能。" }]);
+                    setQuestion('');
+                    return;
+                }
 
                 const userQuestion = question;
                 setQuestion('');
                 setQnaLoading(true);
-
                 setHistoryQnA(prev => [...prev, { role: 'user', text: userQuestion }]);
 
-                const currentPeriodInfo = historyPeriods.find(p => p.id === selectedPeriod);
+                const displayCountyName = hoveredCounty || selectedCounty || '全台灣';
+                const currentPeriodName = historyPeriods.find(p => p.id === selectedPeriod)?.name;
+                
                 const contextInfo = `
                   當前使用者狀態：
-                  - 正在瀏覽地區：${displayCounty || '全台灣'}
+                  - 正在瀏覽地區：${displayCountyName}
                   - 當前模式：${mode === 'history' ? '歷史發展模式' : '一般地理資訊模式'}
-                  - 當前歷史時期焦點：${mode === 'history' ? currentPeriodInfo.name : '現代'}
+                  - 當前歷史時期焦點：${mode === 'history' ? currentPeriodName : '現代'}
                 `;
 
                 const systemPrompt = `你是一位專業、親切且知識淵博的台灣歷史與地理導遊。
                 請根據使用者的問題以及當前的瀏覽情境（Context）來回答。
                 回答風格要生動有趣，適合大眾閱讀，但歷史事實必須嚴謹。
-                請使用繁體中文回答。
-                如果不確定答案，請務實地說明你只能根據有限資訊推測。
-                `;
+                請使用繁體中文回答。`;
 
                 const userQuery = `${contextInfo}\n\n使用者的問題是：${userQuestion}`;
-                
-                // 注意：因為是公開的靜態網頁，實際上不建議直接在這裡放 API Key，
-                // 但為了演示功能，您可以填入您的 Key。
-                const apiKey = ""; 
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
-                if (!apiKey) {
-                     setHistoryQnA(prev => [...prev, { role: 'model', text: "請先設定 API Key 才能使用 AI 問答功能。" }]);
-                     setQnaLoading(false);
-                     return;
-                }
-
-                const fetchWithRetry = async (payload, retries = 3, delay = 1000) => {
-                    for (let i = 0; i < retries; i++) {
-                        try {
-                            const response = await fetch(apiUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(payload)
-                            });
-
-                            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                            return await response.json();
-                        } catch (err) {
-                            if (i === retries - 1) throw err;
-                            await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
-                        }
-                    }
-                };
-
-                const payload = {
-                    contents: [{ parts: [{ text: userQuery }] }],
-                    systemInstruction: { parts: [{ text: systemPrompt }] },
-                    tools: [{ "google_search": {} }]
-                };
-
                 try {
-                    const result = await fetchWithRetry(payload);
-                    const candidate = result.candidates?.[0];
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: userQuery }] }],
+                            systemInstruction: { parts: [{ text: systemPrompt }] },
+                            tools: [{ "google_search": {} }]
+                        })
+                    });
                     
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+
                     if (candidate) {
                         const responseText = candidate.content?.parts?.[0]?.text || "抱歉，我現在無法回答這個問題。";
                         const sources = candidate.groundingMetadata?.groundingAttributions?.map(attr => ({
@@ -631,62 +597,44 @@
                             uri: attr.web?.uri
                         })).filter(s => s.uri) || [];
 
-                        setHistoryQnA(prev => [...prev, { 
-                            role: 'model', 
-                            text: responseText,
-                            sources: sources
-                        }]);
+                        setHistoryQnA(prev => [...prev, { role: 'model', text: responseText, sources: sources }]);
                     }
                 } catch (error) {
-                    console.error("Gemini API Call failed:", error);
                     setHistoryQnA(prev => [...prev, { role: 'model', text: "連線發生錯誤，請稍後再試。" }]);
                 } finally {
                     setQnaLoading(false);
                 }
             };
 
-            // --- 地圖互動控制 Logic ---
-
+            // Map Interaction Handlers
             const handleWheel = (e) => {
                 const scaleAdjustment = -e.deltaY * 0.002;
                 const newScale = Math.max(0.5, Math.min(10, scale + scaleAdjustment));
                 setScale(newScale);
             };
-
             const handleMouseDown = (e) => {
                 setIsDragging(true);
                 setDragStart({ x: e.clientX - translate.x, y: e.clientY - translate.y });
                 hasMovedRef.current = false;
             };
-
             const handleMouseMove = (e) => {
                 if (isDragging) {
-                    const newTranslateX = e.clientX - dragStart.x;
-                    const newTranslateY = e.clientY - dragStart.y;
-                    
+                    const newX = e.clientX - dragStart.x;
+                    const newY = e.clientY - dragStart.y;
                     if (!hasMovedRef.current) {
-                        const moveDist = Math.sqrt(Math.pow(newTranslateX - translate.x, 2) + Math.pow(newTranslateY - translate.y, 2));
-                        if (moveDist > 2) hasMovedRef.current = true;
+                        const dist = Math.sqrt(Math.pow(newX - translate.x, 2) + Math.pow(newY - translate.y, 2));
+                        if (dist > 2) hasMovedRef.current = true;
                     }
-
-                    setTranslate({ x: newTranslateX, y: newTranslateY });
+                    setTranslate({ x: newX, y: newY });
                 }
             };
-
-            const handleMouseUp = () => {
-                setIsDragging(false);
-            };
-
-            const handleMouseLeave = () => {
-                setIsDragging(false);
-                setHoveredCounty(null);
-            };
-            
+            const handleMouseUp = () => setIsDragging(false);
+            const handleMouseLeave = () => { setIsDragging(false); setHoveredCounty(null); };
             const handleCountyClick = (e, name) => {
                 e.stopPropagation();
                 if (!hasMovedRef.current) {
-                    setSelectedCounty(name === selectedCounty ? null : name); 
-                    setHistoryQnA([]); 
+                    setSelectedCounty(name === selectedCounty ? null : name);
+                    setHistoryQnA([]);
                 }
             };
 
@@ -694,58 +642,56 @@
                 return countyHistory[countyName] && countyHistory[countyName][selectedPeriod] && countyHistory[countyName][selectedPeriod] !== "-";
             };
 
+            const displayCounty = hoveredCounty || selectedCounty;
+            const currentPeriodInfo = historyPeriods.find(p => p.id === selectedPeriod);
+            const displayedCountyData = displayCounty ? (countyData[displayCounty] || {}) : {};
+            const displayedCountyHistory = displayCounty ? (countyHistory[displayCounty] || {}) : {};
+
+            // 提取樣式以避免 Jekyll 處理錯誤
+            const btnStyle = (period) => ({ backgroundColor: selectedPeriod === period.id ? period.color : undefined });
+            const svgStyle = { maxHeight: '100%', maxWidth: '100%' };
+            const historyTitleStyle = { color: `${currentPeriodInfo.color}88` };
+            const headerStyle = { backgroundColor: mode === 'history' ? currentPeriodInfo.color : '#2563eb' };
+            const cardStyle = { backgroundColor: `${currentPeriodInfo.color}11`, borderColor: currentPeriodInfo.color };
+            const iconColorStyle = { color: currentPeriodInfo.color };
+            const dotStyle = (period) => ({ backgroundColor: period.color });
+            const textStyle = (period) => ({ color: period.color });
+
             const renderMap = () => {
                 if (!geoData) return null;
-
-                const projection = d3.geoMercator()
-                    .center([120.9, 23.7])
-                    .scale(8000)
-                    .translate([300, 350]);
-
+                const projection = d3.geoMercator().center([120.9, 23.7]).scale(8000).translate([300, 350]);
                 const pathGenerator = d3.geoPath().projection(projection);
-                const activeColor = historyPeriods.find(p => p.id === selectedPeriod)?.color || '#3b82f6';
-
-                const islandScales = {
-                    "澎湖縣": 1.8,
-                    "金門縣": 2.2,
-                    "連江縣": 3.0
-                };
+                const activeColor = currentPeriodInfo?.color || '#3b82f6';
+                const islandScales = { "澎湖縣": 1.8, "金門縣": 2.2, "連江縣": 3.0 };
 
                 return (
                     <g transform={`translate(${translate.x}, ${translate.y}) scale(${scale})`}>
                         {geoData.features.map((feature, i) => {
                             const rawName = feature.properties.name || feature.properties.COUNTYNAME;
                             const name = normalizeName(rawName);
-                            
                             const isSelected = selectedCounty === name;
                             const isHovered = hoveredCounty === name;
                             
                             let fillColor = "#e2e8f0";
-                            let strokeColor = "#374151"; 
+                            let strokeColor = "#374151";
                             
-                            const displayForColor = displayCounty;
-
                             if (mode === 'history') {
                                 const hasEvent = hasHistory(name);
-                                if (name === displayForColor) {
+                                if (name === displayCounty) {
                                     fillColor = activeColor;
                                     strokeColor = "#fbbf24";
                                 } else if (hasEvent) {
-                                    fillColor = `${activeColor}66`; 
+                                    fillColor = `${activeColor}66`;
                                 } else {
                                     fillColor = "#f1f5f9";
                                 }
                             } else {
-                                fillColor = name === displayForColor ? "#3b82f6" : isHovered ? "#93c5fd" : "#e2e8f0";
+                                fillColor = name === displayCounty ? "#3b82f6" : isHovered ? "#93c5fd" : "#e2e8f0";
                             }
 
                             const islandScale = islandScales[name] || 1;
                             const [cx, cy] = pathGenerator.centroid(feature);
-                            
-                            const pathTransform = islandScale > 1 
-                                ? `translate(${cx}, ${cy}) scale(${islandScale}) translate(-${cx}, -${cy})` 
-                                : undefined;
-
+                            const pathTransform = islandScale > 1 ? `translate(${cx}, ${cy}) scale(${islandScale}) translate(-${cx}, -${cy})` : undefined;
                             const baseStrokeWidth = (mode === 'history' && hasHistory(name)) ? 1.5 : 1;
                             const finalStrokeWidth = baseStrokeWidth / islandScale;
 
@@ -758,12 +704,7 @@
                                     strokeWidth={finalStrokeWidth}
                                     transform={pathTransform}
                                     className={`transition-colors duration-200 ease-in-out ${isDragging ? 'cursor-grabbing' : 'cursor-pointer'}`}
-                                    onMouseEnter={() => {
-                                        if (!isDragging) {
-                                            setHoveredCounty(name);
-                                            if (mode === 'history') setSelectedCounty(name);
-                                        }
-                                    }}
+                                    onMouseEnter={() => !isDragging && setHoveredCounty(name)}
                                     onMouseLeave={() => setHoveredCounty(null)}
                                     onClick={(e) => handleCountyClick(e, name)}
                                 />
@@ -772,14 +713,6 @@
                     </g>
                 );
             };
-
-            const handleZoomIn = () => setScale(s => Math.min(s * 1.5, 5));
-            const handleZoomOut = () => setScale(s => Math.max(s / 1.5, 1));
-            const handleReset = () => { setScale(1); setTranslate({ x: 0, y: 0 }); setSelectedCounty(null); };
-
-            const currentPeriodInfo = historyPeriods.find(p => p.id === selectedPeriod);
-            const displayedCountyData = displayCounty ? (countyData[displayCounty] || {}) : {};
-            const displayedCountyHistory = displayCounty ? (countyHistory[displayCounty] || {}) : {};
 
             return (
                 <div className="flex flex-col h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden relative">
@@ -807,7 +740,7 @@
                         {mode === 'history' && (
                             <div className="px-4 py-3 bg-stone-100 overflow-x-auto whitespace-nowrap scrollbar-hide flex gap-2 border-b border-stone-200">
                                 {historyPeriods.map((period) => (
-                                    <button key={period.id} onClick={() => { setSelectedPeriod(period.id); setSelectedCounty(null); }} className={`px-4 py-2 rounded-full text-sm font-medium border flex items-center gap-2 ${selectedPeriod === period.id ? 'text-white shadow-md border-transparent' : 'bg-white text-slate-600 border-slate-200'}`} style={{ backgroundColor: selectedPeriod === period.id ? period.color : undefined }}>
+                                    <button key={period.id} onClick={() => { setSelectedPeriod(period.id); setSelectedCounty(null); }} className={`px-4 py-2 rounded-full text-sm font-medium border flex items-center gap-2 ${selectedPeriod === period.id ? 'text-white shadow-md border-transparent' : 'bg-white text-slate-600 border-slate-200'}`} style={btnStyle(period)}>
                                         <period.icon className="w-4 h-4" />
                                         <span>{period.name}</span>
                                     </button>
@@ -902,13 +835,13 @@
                                 <>
                                     {mode === 'history' && (
                                         <div className="absolute top-4 left-4 p-4 max-w-xs z-0 pointer-events-none select-none">
-                                            <h3 className="text-2xl font-bold text-slate-300" style={{ color: `${currentPeriodInfo.color}88` }}>{currentPeriodInfo.name}</h3>
+                                            <h3 className="text-2xl font-bold text-slate-300" style={historyTitleStyle}>{currentPeriodInfo.name}</h3>
                                             <p className="text-slate-400 text-sm mt-1 font-medium opacity-80">{currentPeriodInfo.year}</p>
                                             <p className="text-slate-500 text-sm mt-2">{currentPeriodInfo.desc}</p>
                                         </div>
                                     )}
                                     <div className="absolute top-4 right-4 bg-white/80 backdrop-blur px-2 py-1 rounded text-xs text-slate-400 pointer-events-none select-none z-0">滾輪縮放 • 拖曳移動</div>
-                                    <svg ref={svgRef} viewBox="0 0 600 700" className="w-full h-full max-h-full drop-shadow-xl z-10 select-none" style={{ maxHeight: '100%', maxWidth: '100%' }}>
+                                    <svg ref={svgRef} viewBox="0 0 600 700" className="w-full h-full max-h-full drop-shadow-xl z-10 select-none" style={svgStyle}>
                                         <defs><filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter></defs>
                                         {renderMap()}
                                     </svg>
@@ -925,7 +858,7 @@
                         <div className={`absolute top-4 bottom-4 right-4 w-72 bg-white/95 backdrop-blur-md shadow-2xl rounded-2xl border border-white/50 transform transition-transform duration-300 ease-out z-30 flex flex-col overflow-hidden ${displayCounty ? 'translate-x-0' : 'translate-x-[120%]'}`}>
                             {displayCounty && (
                                 <div className="h-full flex flex-col">
-                                    <div className="p-4 border-b flex justify-between items-center text-white transition-colors duration-300 flex-none" style={{ backgroundColor: mode === 'history' ? currentPeriodInfo.color : '#2563eb' }}>
+                                    <div className="p-4 border-b flex justify-between items-center text-white transition-colors duration-300 flex-none" style={headerStyle}>
                                         <h2 className="text-xl font-bold flex items-center gap-2">{displayCounty}{mode === 'history' && <span className="text-xs bg-white/20 px-2 py-1 rounded border border-white/30">{currentPeriodInfo.name}</span>}</h2>
                                         {selectedCounty && <button onClick={() => setSelectedCounty(null)} className="hover:bg-white/20 p-1 rounded transition-colors"><X className="w-5 h-5" /></button>}
                                     </div>
@@ -961,8 +894,8 @@
                                             </div>
                                         ) : (
                                             <div className="space-y-5 animate-fadeIn">
-                                                <div className="p-4 rounded-xl border bg-opacity-10 border-opacity-20" style={{ backgroundColor: `${currentPeriodInfo.color}11`, borderColor: currentPeriodInfo.color }}>
-                                                    <div className="flex items-center gap-2 mb-3" style={{ color: currentPeriodInfo.color }}>{currentPeriodInfo.icon}<h3 className="font-bold text-sm">{currentPeriodInfo.name} ({currentPeriodInfo.year})</h3></div>
+                                                <div className="p-4 rounded-xl border bg-opacity-10 border-opacity-20" style={cardStyle}>
+                                                    <div className="flex items-center gap-2 mb-3" style={iconColorStyle}>{currentPeriodInfo.icon}<h3 className="font-bold text-sm">{currentPeriodInfo.name} ({currentPeriodInfo.year})</h3></div>
                                                     <div className="text-slate-700 leading-relaxed font-medium text-sm">
                                                         {displayedCountyHistory[selectedPeriod] && displayedCountyHistory[selectedPeriod] !== "-" ? displayedCountyHistory[selectedPeriod] : <span className="text-slate-400 italic text-xs">此時期該區域尚無重大開發紀錄。</span>}
                                                     </div>
@@ -976,8 +909,8 @@
                                                             if (!txt || txt === "-") return null;
                                                             return (
                                                                 <div key={period.id} className="relative pl-5 group cursor-pointer" onClick={() => { setSelectedPeriod(period.id); setSelectedCounty(null); }}>
-                                                                    <div className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white" style={{ backgroundColor: period.color }}></div>
-                                                                    <div className="mb-1"><span className="text-xs font-bold" style={{ color: period.color }}>{period.name}</span></div>
+                                                                    <div className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white" style={dotStyle(period)}></div>
+                                                                    <div className="mb-1"><span className="text-xs font-bold" style={textStyle(period)}>{period.name}</span></div>
                                                                     <p className="text-xs text-slate-500 line-clamp-2 hover:line-clamp-none">{txt}</p>
                                                                 </div>
                                                             );
