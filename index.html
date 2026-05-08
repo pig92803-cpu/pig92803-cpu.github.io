@@ -45,6 +45,7 @@
             justify-content: space-between;
             z-index: 10;
             pointer-events: none;
+            gap: 0.5rem; /* 增加間距以免擁擠 */
         }
 
         .score-box {
@@ -53,13 +54,15 @@
             border-radius: 9999px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
             font-weight: bold;
-            font-size: 1.25rem;
+            font-size: 1.1rem; /* 稍微縮小字體以適應三個框 */
             border: 2px solid var(--accent-color);
+            text-align: center;
+            flex: 1; /* 讓三個框均分空間 */
         }
 
         #question-area {
             position: absolute;
-            top: 4.5rem;
+            top: 5rem;
             width: 100%;
             text-align: center;
             z-index: 10;
@@ -169,8 +172,9 @@
         
         <!-- UI 層 -->
         <div id="ui-layer">
-            <div class="score-box">得分: <span id="score">0</span></div>
-            <div class="score-box" style="border-color: #ef4444; color: #ef4444;">生命: <span id="lives">❤️❤️❤️</span></div>
+            <div class="score-box" style="border-color: #3b82f6; color: #3b82f6;">得分: <br><span id="score">0</span></div>
+            <div class="score-box" style="border-color: #10b981; color: #10b981;">答對: <br><span id="correct-count">0</span></div>
+            <div class="score-box" style="border-color: #ef4444; color: #ef4444;">生命: <br><span id="lives">❤️❤️❤️</span></div>
         </div>
 
         <!-- 題目區域 -->
@@ -208,7 +212,8 @@
         <div id="game-over-menu" class="menu-overlay hidden">
             <div class="menu-card">
                 <h1 class="text-4xl font-black mb-4 text-red-500">遊戲結束</h1>
-                <p class="text-2xl mb-4">你的總得分是: <span id="final-score" class="font-bold text-blue-600">0</span></p>
+                <p class="text-2xl mb-2 text-blue-600">總得分: <span id="final-score" class="font-bold">0</span></p>
+                <p class="text-2xl mb-6 text-green-600">答對題數: <span id="final-correct" class="font-bold">0</span> 題</p>
                 <button class="btn" onclick="resetGame()">再玩一次 🔄</button>
             </div>
         </div>
@@ -258,11 +263,13 @@
 
         // UI 元素
         const scoreEl = document.getElementById('score');
+        const correctCountEl = document.getElementById('correct-count'); // 新增答對題數元素
         const livesEl = document.getElementById('lives');
         const questionTextEl = document.getElementById('question-text');
         const startMenu = document.getElementById('start-menu');
         const gameOverMenu = document.getElementById('game-over-menu');
         const finalScoreEl = document.getElementById('final-score');
+        const finalCorrectEl = document.getElementById('final-correct'); // 新增結算答對題數元素
         const feedbackCorrect = document.getElementById('feedback-correct');
         const feedbackWrong = document.getElementById('feedback-wrong');
 
@@ -302,6 +309,7 @@
         // 遊戲狀態
         let gameState = 'START'; 
         let score = 0;
+        let correctCount = 0; // 新增答對題數變數
         let lives = 3;
         const maxLives = 5;
         let animationId;
@@ -621,6 +629,10 @@
             score += 10;
             scoreEl.textContent = score;
             
+            // 增加答對題數並更新 UI
+            correctCount++;
+            correctCountEl.textContent = correctCount;
+            
             if (currentSpeed < maxSpeed) {
                 currentSpeed += speedIncrement;
             }
@@ -667,6 +679,7 @@
             gameOverMenu.classList.add('hidden');
             
             score = 0;
+            correctCount = 0; // 重置答對題數
             lives = 3;
             currentSpeed = baseSpeed; 
             items = [];
@@ -682,6 +695,7 @@
             player.lane = 1;
             
             scoreEl.textContent = score;
+            correctCountEl.textContent = correctCount; // 更新畫面顯示的答對題數
             updateLivesDisplay();
             
             gameState = 'PLAYING';
@@ -700,6 +714,8 @@
             cancelAnimationFrame(animationId);
             
             finalScoreEl.textContent = score;
+            finalCorrectEl.textContent = correctCount; // 更新結算畫面的答對題數
+            
             questionTextEl.classList.add('hidden');
             gameOverMenu.classList.remove('hidden');
         }
