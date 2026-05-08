@@ -245,42 +245,118 @@
 
     <script>
         // ==========================================
-        // 🎵 音效管理器 (使用自訂 MP3 檔案)
+        // 🎵 音效管理器 (Web Audio API 合成)
         // ==========================================
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
         const SoundManager = {
-            // 請將您的音樂檔案命名為以下名稱，並放在與 index.html 同一個資料夾 (GitHub 上)
-            bgmAudio: new Audio('bgm.mp3'),       // 背景音樂
-            engineAudio: new Audio('engine.mp3'), // 切換車道引擎聲
-            bombAudio: new Audio('bomb.mp3'),     // 炸彈爆炸聲
+            isPlayingBGM: false,
+            bgmInterval: null,
+            nextNoteTime: 0,
+            noteIndex: 0,
 
             init() {
-                this.bgmAudio.loop = true;  // 設定背景音樂循環播放
-                this.bgmAudio.volume = 0.3; // 調整背景音樂音量 (0.0 最小聲 ~ 1.0 最大聲)
-                this.engineAudio.volume = 0.5; // 引擎聲音量
-                this.bombAudio.volume = 0.8;   // 爆炸聲音量
+                if (!audioCtx) {
+                    audioCtx = new AudioContext();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
             },
 
             // 汽車變換車道的引擎加速聲
             playEngine() {
-                this.engineAudio.currentTime = 0; // 歸零以便連續快速播放
-                this.engineAudio.play().catch(e => console.log("引擎音檔載入中或未找到"));
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                
+                // 頻率從低音稍微滑高，產生 "Vroom" 的感覺
+                osc.frequency.setValueAtTime(60, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+                osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.3);
+                
+                // 音量控制
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
             },
 
-            // 碰到炸彈的爆炸聲
+            // 碰到炸彈的爆炸聲 (白噪音合成)
             playExplosion() {
-                this.bombAudio.currentTime = 0;
-                this.bombAudio.play().catch(e => console.log("爆炸音檔載入中或未找到"));
+                if (!audioCtx) return;
+                const bufferSize = audioCtx.sampleRate * 0.5; // 0.5秒
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1; // 產生白噪音
+                }
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                
+                // 使用低通濾波器讓聲音悶悶的，像真實爆炸
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1000, audioCtx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.5);
+
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+                noise.start();
             },
 
-            // 背景音樂
+            // 背景音樂 (8-bit 風格電子節奏)
             startBGM() {
                 this.init();
-                this.bgmAudio.play().catch(e => console.log("BGM音檔載入中或未找到"));
+                if (this.isPlayingBGM) return;
+                this.isPlayingBGM = true;
+                this.nextNoteTime = audioCtx.currentTime + 0.1;
+                this.noteIndex = 0;
+                
+                // 簡單的動感貝斯循環音符頻率
+                const bassNotes = [130.81, 130.81, 196.00, 196.00, 155.56, 155.56, 174.61, 174.61]; 
+
+                const playNote = (time, freq) => {
+                    if (!this.isPlayingBGM) return;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'square'; // 方波製造復古電子音效
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.02, time); // 音量放小，作為背景音樂
+                    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(time);
+                    osc.stop(time + 0.2);
+                };
+
+                // 持續調度音符
+                this.bgmInterval = setInterval(() => {
+                    if (!this.isPlayingBGM) return;
+                    while (this.nextNoteTime < audioCtx.currentTime + 0.1) {
+                        playNote(this.nextNoteTime, bassNotes[this.noteIndex % bassNotes.length]);
+                        this.nextNoteTime += 0.2; // 節奏速度
+                        this.noteIndex++;
+                    }
+                }, 50);
             },
 
             stopBGM() {
-                this.bgmAudio.pause();
-                this.bgmAudio.currentTime = 0; // 重置音樂到開頭
+                this.isPlayingBGM = false;
+                if (this.bgmInterval) {
+                    clearInterval(this.bgmInterval);
+                }
             }
         };
 
