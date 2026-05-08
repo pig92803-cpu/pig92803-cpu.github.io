@@ -62,7 +62,8 @@
 
         #question-area {
             position: absolute;
-            top: 5rem;
+            /* 調整這裡改變上下位置，原本是 5rem，現在往下移動到 7.5rem */
+            top: 7.5rem; 
             width: 100%;
             text-align: center;
             z-index: 10;
@@ -72,14 +73,16 @@
         #question-text {
             display: inline-block;
             background-color: rgba(255, 255, 255, 0.95);
-            padding: 0.5rem 1.5rem;
-            border-radius: 1rem;
-            font-size: 1.5rem;
+            /* 增加 padding 讓框框變大 (原本是 0.5rem 1.5rem) */
+            padding: 1rem 2rem; 
+            border-radius: 1.5rem; /* 讓邊角更圓潤一點 */
+            /* 字體變大 (原本是 1.5rem) */
+            font-size: 2.2rem; 
             font-weight: 900;
             color: #ea580c; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-            border: 3px solid #fdba74;
-            max-width: 90%;
+            box-shadow: 0 6px 10px -2px rgba(0, 0, 0, 0.3);
+            border: 4px solid #fdba74; /* 邊框稍微加粗 */
+            max-width: 95%;
             word-wrap: break-word;
         }
 
