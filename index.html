@@ -325,7 +325,7 @@
         const baseSpeed = 2.5; // 速度調慢
         let currentSpeed = baseSpeed;
         const speedIncrement = 0.25; 
-        const maxSpeed = 12; // 最高速度
+        const maxSpeed = 20; // 最高速度
 
         // 物理距離設定
         let traveledDistance = 0;       
@@ -513,7 +513,7 @@
                     ctx.fill();
                     ctx.stroke();
                     ctx.fillStyle = this.textColor;
-                    ctx.font = 'bold 32px "標楷體", "Nunito", sans-serif'; 
+                    ctx.font = '32px "標楷體", "Nunito", sans-serif'; 
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(this.word, this.x, this.y + 2); 
