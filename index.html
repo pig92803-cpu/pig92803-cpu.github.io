@@ -245,118 +245,42 @@
 
     <script>
         // ==========================================
-        // 🎵 音效管理器 (Web Audio API 合成)
+        // 🎵 音效管理器 (使用自訂 MP3 檔案)
         // ==========================================
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        let audioCtx = null;
-
         const SoundManager = {
-            isPlayingBGM: false,
-            bgmInterval: null,
-            nextNoteTime: 0,
-            noteIndex: 0,
+            // 請將您的音樂檔案命名為以下名稱，並放在與 index.html 同一個資料夾 (GitHub 上)
+            bgmAudio: new Audio('bgm.mp3'),       // 背景音樂
+            engineAudio: new Audio('engine.mp3'), // 切換車道引擎聲
+            bombAudio: new Audio('bomb.mp3'),     // 炸彈爆炸聲
 
             init() {
-                if (!audioCtx) {
-                    audioCtx = new AudioContext();
-                }
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
+                this.bgmAudio.loop = true;  // 設定背景音樂循環播放
+                this.bgmAudio.volume = 0.3; // 調整背景音樂音量 (0.0 最小聲 ~ 1.0 最大聲)
+                this.engineAudio.volume = 0.5; // 引擎聲音量
+                this.bombAudio.volume = 0.8;   // 爆炸聲音量
             },
 
             // 汽車變換車道的引擎加速聲
             playEngine() {
-                if (!audioCtx) return;
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                
-                // 頻率從低音稍微滑高，產生 "Vroom" 的感覺
-                osc.frequency.setValueAtTime(60, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.1);
-                osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.3);
-                
-                // 音量控制
-                gain.gain.setValueAtTime(0, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05);
-                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.3);
+                this.engineAudio.currentTime = 0; // 歸零以便連續快速播放
+                this.engineAudio.play().catch(e => console.log("引擎音檔載入中或未找到"));
             },
 
-            // 碰到炸彈的爆炸聲 (白噪音合成)
+            // 碰到炸彈的爆炸聲
             playExplosion() {
-                if (!audioCtx) return;
-                const bufferSize = audioCtx.sampleRate * 0.5; // 0.5秒
-                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.random() * 2 - 1; // 產生白噪音
-                }
-                const noise = audioCtx.createBufferSource();
-                noise.buffer = buffer;
-                
-                // 使用低通濾波器讓聲音悶悶的，像真實爆炸
-                const filter = audioCtx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(1000, audioCtx.currentTime);
-                filter.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.5);
-
-                const gain = audioCtx.createGain();
-                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(audioCtx.destination);
-                noise.start();
+                this.bombAudio.currentTime = 0;
+                this.bombAudio.play().catch(e => console.log("爆炸音檔載入中或未找到"));
             },
 
-            // 背景音樂 (8-bit 風格電子節奏)
+            // 背景音樂
             startBGM() {
                 this.init();
-                if (this.isPlayingBGM) return;
-                this.isPlayingBGM = true;
-                this.nextNoteTime = audioCtx.currentTime + 0.1;
-                this.noteIndex = 0;
-                
-                // 簡單的動感貝斯循環音符頻率
-                const bassNotes = [130.81, 130.81, 196.00, 196.00, 155.56, 155.56, 174.61, 174.61]; 
-
-                const playNote = (time, freq) => {
-                    if (!this.isPlayingBGM) return;
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.type = 'square'; // 方波製造復古電子音效
-                    osc.frequency.value = freq;
-                    gain.gain.setValueAtTime(0.02, time); // 音量放小，作為背景音樂
-                    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start(time);
-                    osc.stop(time + 0.2);
-                };
-
-                // 持續調度音符
-                this.bgmInterval = setInterval(() => {
-                    if (!this.isPlayingBGM) return;
-                    while (this.nextNoteTime < audioCtx.currentTime + 0.1) {
-                        playNote(this.nextNoteTime, bassNotes[this.noteIndex % bassNotes.length]);
-                        this.nextNoteTime += 0.2; // 節奏速度
-                        this.noteIndex++;
-                    }
-                }, 50);
+                this.bgmAudio.play().catch(e => console.log("BGM音檔載入中或未找到"));
             },
 
             stopBGM() {
-                this.isPlayingBGM = false;
-                if (this.bgmInterval) {
-                    clearInterval(this.bgmInterval);
-                }
+                this.bgmAudio.pause();
+                this.bgmAudio.currentTime = 0; // 重置音樂到開頭
             }
         };
 
@@ -451,10 +375,11 @@
         const speedIncrement = 0.25; 
         const maxSpeed = 20; 
 
+        // 更改為「波次 (Wave)」觸發系統
         let traveledDistance = 0;       
-        let nextWordSpawn = 0;          
-        let nextItemSpawn = 0;          
-        const WORD_GAP = 600;           
+        let waveTriggerDistance = 0;          
+        let hasSpawnedItem = false;          
+        let hasSpawnedWord = false;           
 
         let gameState = 'START'; 
         let score = 0;
@@ -660,31 +585,31 @@
         function spawnItems() {
             traveledDistance += currentSpeed;
 
-            // 先產生道具 (因為 nextItemSpawn 會先達到)
-            if (traveledDistance >= nextItemSpawn) {
-                if (Math.random() < 0.7) { 
-                    const lane = Math.floor(Math.random() * laneCount);
-                    let type = 'coin';
-                    const randChance = Math.random();
-                    
-                    if (randChance < 0.15 && lives < maxLives) {
-                        type = 'health'; 
-                    } else if (randChance > 0.75) {
-                        type = 'bomb';   
-                    }
-                    items.push(new Item(lane, type));
-                }
-                nextItemSpawn += WORD_GAP;
+            // 距離上一波結束後，經過 150px 固定產生「一個」道具 (出現機率提高到 100%)
+            if (!hasSpawnedItem && traveledDistance >= waveTriggerDistance + 150) {
+                const lane = Math.floor(Math.random() * laneCount);
+                let type = 'coin';
+                const randChance = Math.random();
+                
+                // 一次必定只出現一種道具
+                if (randChance < 0.20 && lives < maxLives) {
+                    type = 'health'; // 20% 機率是愛心
+                } else if (randChance < 0.50) {
+                    type = 'bomb';   // 30% 機率是炸彈
+                } // 剩下的 50% 是金幣
+
+                items.push(new Item(lane, type));
+                hasSpawnedItem = true;
             }
 
-            // 後產生國字泡泡
-            if (traveledDistance >= nextWordSpawn) {
+            // 經過 500px 後，才產生國字泡泡 (確保道具一定在答案之前，不會在答案之後)
+            if (!hasSpawnedWord && traveledDistance >= waveTriggerDistance + 500) {
                 const correctLane = Math.floor(Math.random() * laneCount);
                 for (let i = 0; i < laneCount; i++) {
                     const isCorrect = (i === correctLane);
                     items.push(new Item(i, 'word', isCorrect));
                 }
-                nextWordSpawn += WORD_GAP;
+                hasSpawnedWord = true;
             } 
         }
 
@@ -709,6 +634,9 @@
         }
 
         function checkCollisions() {
+            let hitWord = false;
+            let wordFellOff = false;
+
             for (let i = items.length - 1; i >= 0; i--) {
                 const item = items[i];
                 const yOverlap = Math.abs(player.y - item.y) < (player.height/2 + item.size/2 - 15); 
@@ -722,12 +650,8 @@
                             handleWrongAnswer();
                         }
                         
-                        // == 核心修改區 ==
-                        items = []; 
-                        // 確保下一次一定先出道具，再出題目泡泡
-                        nextItemSpawn = traveledDistance + 150; 
-                        nextWordSpawn = nextItemSpawn + (WORD_GAP / 2);
-                        
+                        // == 標記撞到題目 ==
+                        hitWord = true;
                         break; 
                     } else if (item.type === 'coin') {
                         score += 5;
@@ -752,7 +676,23 @@
                         if (lives <= 0) endGame();
                     }
                 } else if (item.y > canvasHeight + 60) {
+                    // 如果題目掉出畫面外
+                    if (item.type === 'word') {
+                        wordFellOff = true;
+                    }
                     items.splice(i, 1);
+                }
+            }
+
+            // 確保每次答完題目或題目超出畫面後，才重置並產生下一波道具和題目
+            if (hitWord || wordFellOff) {
+                items = []; 
+                waveTriggerDistance = traveledDistance;
+                hasSpawnedItem = false;
+                hasSpawnedWord = false;
+                
+                if (wordFellOff) {
+                    generateQuestion();
                 }
             }
         }
@@ -829,10 +769,10 @@
             traveledDistance = 0;
             roadScrollOffset = 0;
             
-            // 遊戲一開始先出道具
-            nextItemSpawn = 50; 
-            // 接著才出國字題目泡泡
-            nextWordSpawn = nextItemSpawn + (WORD_GAP / 2); 
+            // 遊戲一開始重置波次觸發距離
+            waveTriggerDistance = 0;
+            hasSpawnedItem = false;
+            hasSpawnedWord = false;
 
             player.targetLane = 1;
             player.lane = 1;
