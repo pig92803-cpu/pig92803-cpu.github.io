@@ -472,7 +472,7 @@
                 this.x = (lane * laneWidth) + (laneWidth / 2);
                 this.y = -60; 
                 this.isCorrect = isCorrect;
-                this.size = 50; 
+                this.size = 90; 
                 
                 if (this.type === 'word') {
                     if (this.isCorrect) {
@@ -504,7 +504,7 @@
 
             draw() {
                 if (this.type === 'word') {
-                    const radius = 64;
+                    const radius = 80;
                     ctx.fillStyle = this.bgColor;
                     ctx.strokeStyle = this.borderColor;
                     ctx.lineWidth = 4;
