@@ -316,6 +316,73 @@
                 noise.start();
             },
 
+            // 答對的叮咚聲
+            playCorrect() {
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                
+                // 叮 (高音)
+                osc.frequency.setValueAtTime(1318.51, audioCtx.currentTime);
+                // 咚 (稍低音)
+                osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.15);
+                
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.02);
+                gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.15);
+                gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.17);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            },
+
+            // 錯誤的提示聲 (低沉蜂鳴聲)
+            playWrong() {
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                
+                // 較低、較沉的頻率
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(120, audioCtx.currentTime + 0.3);
+
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+                gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.25);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.35);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.35);
+            },
+
+            // 金幣聲 (快速的高音爬升)
+            playCoin() {
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                
+                osc.frequency.setValueAtTime(987.77, audioCtx.currentTime); // B5
+                osc.frequency.setValueAtTime(1318.51, audioCtx.currentTime + 0.08); // E6
+
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.02);
+                gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.08);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+            },
+
             // 背景音樂 (8-bit 風格電子節奏)
             startBGM() {
                 this.init();
@@ -604,7 +671,7 @@
                 this.x = (lane * laneWidth) + (laneWidth / 2);
                 this.y = -60; 
                 this.isCorrect = isCorrect;
-                this.size = 50; 
+                this.size = 90; 
                 
                 if (this.type === 'word') {
                     if (this.isCorrect) {
@@ -650,7 +717,8 @@
                     ctx.textBaseline = 'middle';
                     ctx.fillText(this.word, this.x, this.y + 2); 
                 } else {
-                    ctx.font = '90px Arial';
+                    // 將道具 Emoji 字體大小放大為 75px
+                    ctx.font = '75px Arial';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(this.emoji, this.x, this.y);
@@ -730,6 +798,7 @@
                         hitWord = true;
                         break; 
                     } else if (item.type === 'coin') {
+                        SoundManager.playCoin(); // 播放金幣聲
                         score += 5;
                         scoreEl.textContent = score;
                         showMiniFeedback('+5', item.x, item.y, '#fde047'); 
@@ -788,6 +857,7 @@
         }
 
         function handleCorrectAnswer() {
+            SoundManager.playCorrect(); // 播放叮咚聲
             score += 10;
             scoreEl.textContent = score;
             correctCount++;
@@ -801,6 +871,7 @@
         }
 
         function handleWrongAnswer() {
+            SoundManager.playWrong(); // 播放錯誤音效
             lives--;
             updateLivesDisplay();
             showFeedback(feedbackWrong);
