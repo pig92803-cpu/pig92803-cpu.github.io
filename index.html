@@ -194,7 +194,7 @@
                     <p class="font-bold mb-2">🚗 玩法介紹：</p>
                     <ul class="list-disc pl-5 space-y-1">
                         <li>看上方題目，尋找指定<strong>部首</strong>的字。</li>
-                        <li>點擊螢幕<strong>左側</strong>或<strong>右側</strong>切換車道。</li>
+                        <li>點擊螢幕左/右半邊，或<strong>左右滑動 (Swipe)</strong> 切換車道。</li>
                         <li>撞到正確的字得分，車速變快！</li>
                         <li>撞到錯誤的字會扣除生命。</li>
                         <li>途中可以吃 🪙 <strong>金幣</strong>加分，或吃 💖 <strong>愛心</strong>補血！</li>
@@ -275,6 +275,12 @@
         const speedIncrement = 0.25; 
         const maxSpeed = 12; // 最高速度
 
+        // 物理距離設定 (取代原本不穩定的 frameCount 產生方式)
+        let traveledDistance = 0;       // 車輛總行駛距離
+        let nextWordSpawn = 0;          // 下一次出現國字的距離點
+        let nextItemSpawn = 0;          // 下一次出現道具的距離點
+        const WORD_GAP = 600;           // 國字與國字之間的固定物理距離 (Pixels)
+
         // 部首題庫設定
         const radicalDict = {
             "金": ["錢", "鐵", "銅", "銀", "鐘", "針", "釘"],
@@ -299,12 +305,10 @@
         let lives = 3;
         const maxLives = 5;
         let animationId;
-        let frameCount = 0;
         
         let currentQuestion = null;
         let items = []; 
         let floatingTexts = []; 
-        let spawnRate = 140; 
         let roadScrollOffset = 0; 
 
         // 汽車設定
@@ -344,13 +348,55 @@
             }
         }
 
+        // 滑鼠點擊支援
         canvas.addEventListener('mousedown', (e) => handleInput(e.clientX));
+
+        // 觸控與滑動 (Swipe) 支援 - 大幅提升靈敏度
+        let touchStartX = 0;
+        let touchStartY = 0;
+
         canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault(); 
+            if (gameState === 'PLAYING') {
+                e.preventDefault(); // 防止畫面被拖曳滾動
+            }
             if(e.touches.length > 0) {
-                handleInput(e.touches[0].clientX);
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
             }
         }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (gameState === 'PLAYING') {
+                e.preventDefault(); 
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (gameState !== 'PLAYING') return;
+            
+            if(e.changedTouches.length > 0) {
+                const touchEndX = e.changedTouches[0].clientX;
+                const touchEndY = e.changedTouches[0].clientY;
+                
+                const dx = touchEndX - touchStartX;
+                const dy = touchEndY - touchStartY;
+
+                // 判斷是滑動還是點擊 (設定 30px 的寬容值，只要滑動超過 30 像素即觸發)
+                if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
+                    // 水平滑動 (Swipe)
+                    if (dx > 0) {
+                        // 往右滑
+                        if (player.targetLane < laneCount - 1) player.targetLane++;
+                    } else {
+                        // 往左滑
+                        if (player.targetLane > 0) player.targetLane--;
+                    }
+                } else if (Math.abs(dx) < 15 && Math.abs(dy) < 15) {
+                    // 原地輕點 (Tap) - 支援整個畫面的左右半部
+                    handleInput(touchEndX);
+                }
+            }
+        });
 
         function drawBackground() {
             ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--road-color');
@@ -462,7 +508,11 @@
         }
 
         function spawnItems() {
-            if (frameCount % Math.floor(spawnRate) === 0) {
+            // 利用真實行駛距離來計算生成時間，保持距離永遠固定
+            traveledDistance += currentSpeed;
+
+            // 產生國字題目的時機
+            if (traveledDistance >= nextWordSpawn) {
                 const correctLane = Math.floor(Math.random() * laneCount);
                 
                 for (let i = 0; i < laneCount; i++) {
@@ -470,10 +520,13 @@
                     items.push(new Item(i, 'word', isCorrect));
                 }
                 
-                spawnRate = Math.max(60, 150 - (currentSpeed - baseSpeed) * 15);
+                // 設定下一次國字出現的距離
+                nextWordSpawn += WORD_GAP;
             } 
-            else if (frameCount % Math.floor(spawnRate / 2) === 0) {
-                if (Math.random() < 0.6) { 
+            
+            // 產生道具的時機 (剛好設定在國字與國字距離的"中間")
+            if (traveledDistance >= nextItemSpawn) {
+                if (Math.random() < 0.6) { // 60% 機率出道具
                     const lane = Math.floor(Math.random() * laneCount);
                     let type = 'coin';
                     if (Math.random() < 0.2 && lives < maxLives) {
@@ -481,6 +534,9 @@
                     }
                     items.push(new Item(lane, type));
                 }
+                
+                // 設定下一次道具出現的距離
+                nextItemSpawn += WORD_GAP;
             }
         }
 
@@ -603,7 +659,6 @@
             checkCollisions();
             drawFloatingTexts();
 
-            frameCount++;
             animationId = requestAnimationFrame(gameLoop);
         }
 
@@ -616,9 +671,13 @@
             currentSpeed = baseSpeed; 
             items = [];
             floatingTexts = [];
-            frameCount = 0;
-            spawnRate = 140;
+            
+            // 初始化行駛距離與第一次產生障礙物的距離點
+            traveledDistance = 0;
             roadScrollOffset = 0;
+            nextWordSpawn = 50; // 遊戲剛開始 50px 處先產生第一波國字
+            nextItemSpawn = nextWordSpawn + (WORD_GAP / 2); // 道具精準定位在國字間距的「正中間」
+
             player.targetLane = 1;
             player.lane = 1;
             
@@ -648,14 +707,5 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
 
 
