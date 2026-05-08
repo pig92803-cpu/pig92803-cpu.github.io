@@ -45,7 +45,7 @@
             justify-content: space-between;
             z-index: 10;
             pointer-events: none;
-            gap: 0.5rem; /* 增加間距以免擁擠 */
+            gap: 0.5rem; 
         }
 
         .score-box {
@@ -54,10 +54,10 @@
             border-radius: 9999px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
             font-weight: bold;
-            font-size: 1.1rem; /* 稍微縮小字體以適應三個框 */
+            font-size: 1.1rem; 
             border: 2px solid var(--accent-color);
             text-align: center;
-            flex: 1; /* 讓三個框均分空間 */
+            flex: 1; 
         }
 
         #question-area {
@@ -105,24 +105,26 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
             border: 4px solid var(--accent-color);
             max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .btn {
-            background-color: var(--accent-color);
             color: white;
             border: none;
-            padding: 1rem 2rem;
-            font-size: 1.5rem;
+            padding: 1rem 1.5rem;
+            font-size: 1.25rem;
             font-weight: bold;
             border-radius: 9999px;
             cursor: pointer;
-            margin-top: 1rem;
-            transition: transform 0.1s, background-color 0.2s;
-            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+            transition: transform 0.1s, filter 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            margin-bottom: 0.75rem;
         }
 
         .btn:hover {
-            background-color: #2563eb;
+            filter: brightness(1.1);
         }
 
         .btn:active {
@@ -193,19 +195,20 @@
         <div id="start-menu" class="menu-overlay">
             <div class="menu-card">
                 <h1 class="text-4xl font-black mb-4 text-blue-600">部首汽車跑酷</h1>
-                <p class="text-xl mb-4">駕駛紅色汽車，尋找正確部首的國字！</p>
-                <div class="text-md text-gray-700 mb-6 text-left inline-block bg-blue-50 p-4 rounded-xl border border-blue-100">
-                    <p class="font-bold mb-2">🚗 玩法介紹：</p>
+                <div class="text-sm text-gray-700 mb-4 text-left inline-block bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <p class="font-bold mb-1">🚗 玩法介紹：</p>
                     <ul class="list-disc pl-5 space-y-1">
                         <li>看上方題目，尋找指定<strong>部首</strong>的字。</li>
-                        <li>點擊螢幕左/右半邊，或<strong>左右滑動 (Swipe)</strong> 切換車道。</li>
-                        <li>撞到正確的字得分，車速變快！</li>
-                        <li>撞到錯誤的字會扣除生命。</li>
-                        <li>途中可以吃 🪙 <strong>金幣</strong>加分，或吃 💖 <strong>愛心</strong>補血！</li>
-                        <li>小心路上的 💣 <strong>炸彈</strong>，撞到會扣除生命！</li>
+                        <li><strong>左右滑動 (Swipe)</strong> 或點擊螢幕左右切換車道。</li>
+                        <li>吃金幣🪙加分、吃愛心💖補血。小心炸彈💣！</li>
                     </ul>
-                </div><br>
-                <button class="btn" onclick="startGame()">出發！ ▶️</button>
+                </div>
+                <h2 class="text-xl font-bold mb-3 text-gray-800">請選擇難度：</h2>
+                <div class="flex flex-col px-4">
+                    <button class="btn bg-green-500" onclick="startGame('easy')">🟢 低年級 (簡單)</button>
+                    <button class="btn bg-yellow-500" onclick="startGame('medium')">🟡 中年級 (中等)</button>
+                    <button class="btn bg-red-500" onclick="startGame('hard')">🔴 高年級 (困難)</button>
+                </div>
             </div>
         </div>
 
@@ -215,46 +218,87 @@
                 <h1 class="text-4xl font-black mb-4 text-red-500">遊戲結束</h1>
                 <p class="text-2xl mb-2 text-blue-600">總得分: <span id="final-score" class="font-bold">0</span></p>
                 <p class="text-2xl mb-6 text-green-600">答對題數: <span id="final-correct" class="font-bold">0</span> 題</p>
-                <button class="btn" onclick="resetGame()">再玩一次 🔄</button>
+                <button class="btn bg-blue-500" onclick="resetGame()">再玩一次 🔄</button>
+                <button class="btn bg-gray-500" onclick="backToMenu()">回主選單 🏠</button>
             </div>
         </div>
 
     </div>
 
     <script>
+        // ==========================================
+        // 📚 題庫設定區 (您可以隨意修改這裡面的字)
+        // ==========================================
+        const questionBanks = {
+            
+            // 🟢 低年級題庫
+            easy: {
+                "金": ["錢", "鐵", "銅", "銀", "鐘", "針", "釘"],
+                "木": ["樹", "林", "森", "椅", "桌", "枝", "根"],
+                "水": ["河", "海", "泳", "汗", "汁", "洗", "泡"], 
+                "火": ["烤", "燒", "燈", "煙", "炒", "炎", "災"], 
+                "土": ["地", "坡", "城", "堆", "塔", "塊", "塵"],
+                "手": ["打", "拍", "抓", "提", "握", "推", "拉"], 
+                "目": ["眼", "睛", "睡", "瞪", "看", "眉", "盼"],
+                "足": ["跑", "跳", "踢", "踏", "踩", "跨", "跌"], 
+                "女": ["媽", "妹", "姐", "奶", "她", "娘", "姑"],
+                "日": ["明", "晴", "早", "晚", "時", "星", "春"],
+                "月": ["期", "朗", "朋", "服", "朔", "望", "朝"],
+                "肉": ["肚", "胖", "肥", "腿", "臉", "胃", "背"], 
+                "口": ["吃", "喝", "唱", "叫", "嘴", "吹", "咬"]
+            },
+
+            // 🟡 中年級題庫 (稍微進階的部首與生字)
+            medium: {
+                "心": ["想", "忘", "忍", "怒", "忽", "急", "怨"],
+                "辶": ["進", "退", "遠", "近", "逃", "迎", "送"],
+                "糸": ["紅", "線", "紙", "級", "結", "細", "給"],
+                "言": ["說", "話", "語", "記", "許", "論", "訴"],
+                "艸": ["花", "草", "葉", "苗", "苦", "茶", "英"], // 草部
+                "虫": ["蚊", "螞", "蟻", "蛇", "蛛", "蛙", "蜂"],
+                "阜": ["陽", "陣", "防", "階", "院", "降", "除"], // 左阜(阝)
+                "邑": ["部", "郭", "郵", "都", "鄉", "鄰", "郊"]  // 右邑(阝)
+            },
+
+            // 🔴 高年級題庫 (更難的部首與生字)
+            hard: {
+                "頁": ["頭", "顏", "題", "類", "願", "頂", "順"],
+                "貝": ["財", "貢", "貧", "貨", "買", "賣", "貴"],
+                "走": ["起", "超", "越", "趕", "趟", "趁", "趨"],
+                "車": ["轉", "輪", "輕", "載", "較", "輛", "輸"],
+                "酉": ["酸", "醉", "醒", "醜", "醫", "酷", "配"],
+                "門": ["閃", "閉", "開", "閒", "關", "閣", "闊"],
+                "隹": ["隻", "雀", "雄", "雅", "集", "雙", "雜"],
+                "雨": ["雪", "雲", "零", "雷", "電", "需", "震"]
+            }
+        };
+
+        // 目前遊戲使用的題庫變數
+        let radicalDict = {};
+        let radicals = [];
+        let currentDifficulty = 'easy'; // 預設難度
+
+        // ==========================================
+        // 🎮 遊戲核心邏輯區
+        // ==========================================
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
         // ==== 將使用者上傳的汽車圖案轉為 SVG 向量圖直接內嵌 ====
         const carSvgCode = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-          <!-- 輪胎 -->
           <path d="M 35 150 L 55 150 L 55 180 L 35 180 Z" fill="#222"/>
           <path d="M 145 150 L 165 150 L 165 180 L 145 180 Z" fill="#222"/>
-          
-          <!-- 後照鏡 -->
           <path d="M 15 85 C 10 85 10 95 15 100 L 30 100 L 35 85 Z" fill="#e0e0e0" stroke="#333" stroke-width="2"/>
           <path d="M 185 85 C 190 85 190 95 185 100 L 170 100 L 165 85 Z" fill="#e0e0e0" stroke="#333" stroke-width="2"/>
-
-          <!-- 紅色車身主體 -->
           <path d="M 45 40 L 155 40 L 165 80 L 185 100 L 185 150 C 185 160 175 165 165 165 L 35 165 C 25 165 15 160 15 150 L 15 100 L 35 80 Z" fill="#ff0000"/>
-          
-          <!-- 深灰後擋風玻璃 -->
           <path d="M 55 45 L 145 45 L 155 75 L 45 75 Z" fill="#4d4d4d" stroke="#333" stroke-width="4"/>
-          
-          <!-- 左右紅色車燈與中間連結 -->
           <path d="M 20 95 L 65 95 L 70 115 L 20 110 Z" fill="#cc1414" stroke="#8a1414" stroke-width="2"/>
           <path d="M 180 95 L 135 95 L 130 115 L 180 110 Z" fill="#cc1414" stroke="#8a1414" stroke-width="2"/>
           <rect x="65" y="100" width="70" height="10" fill="#a01d1d"/>
-
-          <!-- 黑色下保險桿 -->
           <path d="M 20 140 L 180 140 L 175 165 L 25 165 Z" fill="#2c2c2c"/>
-
-          <!-- 銀色排氣管 -->
           <circle cx="50" cy="152" r="9" fill="#cccccc" stroke="#666" stroke-width="2"/>
           <circle cx="150" cy="152" r="9" fill="#cccccc" stroke="#666" stroke-width="2"/>
-
-          <!-- 黑色小反光片 -->
           <rect x="30" y="125" width="15" height="4" fill="#000"/>
           <rect x="155" y="125" width="15" height="4" fill="#000"/>
         </svg>
@@ -264,13 +308,13 @@
 
         // UI 元素
         const scoreEl = document.getElementById('score');
-        const correctCountEl = document.getElementById('correct-count'); // 新增答對題數元素
+        const correctCountEl = document.getElementById('correct-count');
         const livesEl = document.getElementById('lives');
         const questionTextEl = document.getElementById('question-text');
         const startMenu = document.getElementById('start-menu');
         const gameOverMenu = document.getElementById('game-over-menu');
         const finalScoreEl = document.getElementById('final-score');
-        const finalCorrectEl = document.getElementById('final-correct'); // 新增結算答對題數元素
+        const finalCorrectEl = document.getElementById('final-correct');
         const feedbackCorrect = document.getElementById('feedback-correct');
         const feedbackWrong = document.getElementById('feedback-wrong');
 
@@ -283,34 +327,16 @@
         const speedIncrement = 0.25; 
         const maxSpeed = 12; // 最高速度
 
-        // 物理距離設定 (取代原本不穩定的 frameCount 產生方式)
-        let traveledDistance = 0;       // 車輛總行駛距離
-        let nextWordSpawn = 0;          // 下一次出現國字的距離點
-        let nextItemSpawn = 0;          // 下一次出現道具的距離點
-        const WORD_GAP = 600;           // 國字與國字之間的固定物理距離 (Pixels)
-
-        // 部首題庫設定
-        const radicalDict = {
-            "金": ["錢", "鐵", "銅", "銀", "鐘", "針", "釘"],
-            "木": ["樹", "林", "森", "椅", "桌", "枝", "根"],
-            "水": ["河", "海", "泳", "汗", "汁", "洗", "泡"], 
-            "火": ["烤", "燒", "燈", "煙", "炒", "炎", "災"], 
-            "土": ["地", "坡", "城", "堆", "塔", "塊", "塵"],
-            "手": ["打", "拍", "抓", "提", "握", "推", "拉"], 
-            "目": ["眼", "睛", "睡", "瞪", "看", "眉", "盼"],
-            "足": ["跑", "跳", "踢", "踏", "踩", "跨", "跌"], 
-            "女": ["媽", "妹", "姐", "奶", "她", "娘", "姑"],
-            "日": ["明", "晴", "早", "晚", "時", "星", "春"],
-            "月": ["期", "朗", "朋", "服", "朔", "望", "朝"],
-            "肉": ["肚", "胖", "肥", "腿", "臉", "胃", "背"], 
-            "口": ["吃", "喝", "唱", "叫", "嘴", "吹", "咬"]
-        };
-        const radicals = Object.keys(radicalDict);
+        // 物理距離設定
+        let traveledDistance = 0;       
+        let nextWordSpawn = 0;          
+        let nextItemSpawn = 0;          
+        const WORD_GAP = 600;           
 
         // 遊戲狀態
         let gameState = 'START'; 
         let score = 0;
-        let correctCount = 0; // 新增答對題數變數
+        let correctCount = 0; 
         let lives = 3;
         const maxLives = 5;
         let animationId;
@@ -325,9 +351,9 @@
             lane: 1, 
             targetLane: 1,
             y: 0, 
-            width: 100, // 汽車寬度
-            height: 100, // 汽車高度
-            moveSpeed: 0.15, // 車道切換的滑順度
+            width: 100, 
+            height: 100, 
+            moveSpeed: 0.15, 
             currentX: 0
         };
 
@@ -346,10 +372,8 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas(); 
 
-        // 處理點擊/觸控輸入 (左/右移動)
         function handleInput(xPos) {
             if (gameState !== 'PLAYING') return;
-
             if (xPos < canvasWidth / 2) {
                 if (player.targetLane > 0) player.targetLane--;
             } else {
@@ -357,17 +381,13 @@
             }
         }
 
-        // 滑鼠點擊支援
         canvas.addEventListener('mousedown', (e) => handleInput(e.clientX));
 
-        // 觸控與滑動 (Swipe) 支援 - 大幅提升靈敏度
         let touchStartX = 0;
         let touchStartY = 0;
 
         canvas.addEventListener('touchstart', (e) => {
-            if (gameState === 'PLAYING') {
-                e.preventDefault(); // 防止畫面被拖曳滾動
-            }
+            if (gameState === 'PLAYING') e.preventDefault(); 
             if(e.touches.length > 0) {
                 touchStartX = e.touches[0].clientX;
                 touchStartY = e.touches[0].clientY;
@@ -375,9 +395,7 @@
         }, { passive: false });
 
         canvas.addEventListener('touchmove', (e) => {
-            if (gameState === 'PLAYING') {
-                e.preventDefault(); 
-            }
+            if (gameState === 'PLAYING') e.preventDefault(); 
         }, { passive: false });
 
         canvas.addEventListener('touchend', (e) => {
@@ -386,22 +404,16 @@
             if(e.changedTouches.length > 0) {
                 const touchEndX = e.changedTouches[0].clientX;
                 const touchEndY = e.changedTouches[0].clientY;
-                
                 const dx = touchEndX - touchStartX;
                 const dy = touchEndY - touchStartY;
 
-                // 判斷是滑動還是點擊 (設定 30px 的寬容值，只要滑動超過 30 像素即觸發)
                 if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
-                    // 水平滑動 (Swipe)
                     if (dx > 0) {
-                        // 往右滑
                         if (player.targetLane < laneCount - 1) player.targetLane++;
                     } else {
-                        // 往左滑
                         if (player.targetLane > 0) player.targetLane--;
                     }
                 } else if (Math.abs(dx) < 15 && Math.abs(dy) < 15) {
-                    // 原地輕點 (Tap) - 支援整個畫面的左右半部
                     handleInput(touchEndX);
                 }
             }
@@ -435,7 +447,6 @@
 
         function drawPlayer() {
             const bounce = Math.random() * 1.5; 
-            
             if (carImage.complete) {
                 ctx.drawImage(
                     carImage, 
@@ -450,7 +461,6 @@
         function generateQuestion() {
             const randomIndex = Math.floor(Math.random() * radicals.length);
             currentQuestion = radicals[randomIndex];
-            
             questionTextEl.textContent = `請問哪個字的部首是「${currentQuestion}」部？`;
             questionTextEl.classList.remove('hidden');
         }
@@ -498,12 +508,10 @@
                     ctx.fillStyle = this.bgColor;
                     ctx.strokeStyle = this.borderColor;
                     ctx.lineWidth = 4;
-                    
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.stroke();
-
                     ctx.fillStyle = this.textColor;
                     ctx.font = 'bold 32px "標楷體", "Nunito", sans-serif'; 
                     ctx.textAlign = 'center';
@@ -519,39 +527,30 @@
         }
 
         function spawnItems() {
-            // 利用真實行駛距離來計算生成時間，保持距離永遠固定
             traveledDistance += currentSpeed;
 
-            // 產生國字題目的時機
             if (traveledDistance >= nextWordSpawn) {
                 const correctLane = Math.floor(Math.random() * laneCount);
-                
                 for (let i = 0; i < laneCount; i++) {
                     const isCorrect = (i === correctLane);
                     items.push(new Item(i, 'word', isCorrect));
                 }
-                
-                // 設定下一次國字出現的距離
                 nextWordSpawn += WORD_GAP;
             } 
             
-            // 產生道具的時機 (剛好設定在國字與國字距離的"中間")
             if (traveledDistance >= nextItemSpawn) {
-                if (Math.random() < 0.7) { // 70% 機率出道具或障礙物
+                if (Math.random() < 0.7) { 
                     const lane = Math.floor(Math.random() * laneCount);
                     let type = 'coin';
                     const randChance = Math.random();
                     
                     if (randChance < 0.15 && lives < maxLives) {
-                        type = 'health'; // 15% 出現愛心
+                        type = 'health'; 
                     } else if (randChance > 0.75) {
-                        type = 'bomb';   // 25% 出現炸彈
-                    } // 其餘 60% 為金幣
-                    
+                        type = 'bomb';   
+                    }
                     items.push(new Item(lane, type));
                 }
-                
-                // 設定下一次道具出現的距離
                 nextItemSpawn += WORD_GAP;
             }
         }
@@ -563,20 +562,15 @@
         function drawFloatingTexts() {
             for (let i = floatingTexts.length - 1; i >= 0; i--) {
                 const ft = floatingTexts[i];
-                
                 ctx.font = '900 28px Nunito';
                 ctx.textAlign = 'center';
-                
                 ctx.lineWidth = 4;
                 ctx.strokeStyle = '#000';
                 ctx.strokeText(ft.text, ft.x, ft.y);
-                
                 ctx.fillStyle = ft.color;
                 ctx.fillText(ft.text, ft.x, ft.y);
-                
                 ft.y -= 2; 
                 ft.life--;
-                
                 if (ft.life <= 0) floatingTexts.splice(i, 1);
             }
         }
@@ -584,7 +578,6 @@
         function checkCollisions() {
             for (let i = items.length - 1; i >= 0; i--) {
                 const item = items[i];
-                
                 const yOverlap = Math.abs(player.y - item.y) < (player.height/2 + item.size/2 - 15); 
                 const xOverlap = player.lane === item.lane;
 
@@ -595,7 +588,14 @@
                         } else {
                             handleWrongAnswer();
                         }
-                        items = items.filter(it => it.type !== 'word');
+                        
+                        // == 核心修改區 ==
+                        // 答完題目後，清空畫面上所有的障礙物與道具
+                        items = []; 
+                        // 重置產生距離，讓下一題在短暫緩衝後從上方重新出現
+                        nextWordSpawn = traveledDistance + 150;
+                        nextItemSpawn = nextWordSpawn + (WORD_GAP / 2);
+                        
                         break; 
                     } else if (item.type === 'coin') {
                         score += 5;
@@ -613,11 +613,9 @@
                         lives--;
                         updateLivesDisplay();
                         showMiniFeedback('💥 -1', item.x, item.y, '#ef4444'); 
-                        showFeedback(feedbackWrong); // 顯示畫面中間的爆炸警告
+                        showFeedback(feedbackWrong); 
                         items.splice(i, 1);
-                        if (lives <= 0) {
-                            endGame();
-                        }
+                        if (lives <= 0) endGame();
                     }
                 } else if (item.y > canvasHeight + 60) {
                     items.splice(i, 1);
@@ -629,10 +627,7 @@
             element.classList.remove('show-feedback');
             void element.offsetWidth; 
             element.classList.add('show-feedback');
-            
-            setTimeout(() => {
-                element.classList.remove('show-feedback');
-            }, 800);
+            setTimeout(() => element.classList.remove('show-feedback'), 800);
         }
 
         function updateLivesDisplay() {
@@ -645,15 +640,13 @@
         function handleCorrectAnswer() {
             score += 10;
             scoreEl.textContent = score;
-            
-            // 增加答對題數並更新 UI
             correctCount++;
-            correctCountEl.textContent = correctCount;
+            correctCountEl.textContent = correctCount; 
             
             if (currentSpeed < maxSpeed) {
+                // 完全根據初始設定增加速度 (不再依據難度改變)
                 currentSpeed += speedIncrement;
             }
-            
             showFeedback(feedbackCorrect);
             generateQuestion();
         }
@@ -662,57 +655,58 @@
             lives--;
             updateLivesDisplay();
             showFeedback(feedbackWrong);
-
-            if (lives <= 0) {
-                endGame();
-            } else {
-                generateQuestion();
-            }
+            if (lives <= 0) endGame();
+            else generateQuestion();
         }
 
         function gameLoop() {
             if (gameState !== 'PLAYING') return;
-
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-
             drawBackground();
             updatePlayer();
             drawPlayer();
             spawnItems();
-
             for (let i = 0; i < items.length; i++) {
                 items[i].update();
                 items[i].draw();
             }
-
             checkCollisions();
             drawFloatingTexts();
-
             animationId = requestAnimationFrame(gameLoop);
         }
 
-        function startGame() {
+        // 開始遊戲，並寫入選擇的難度題庫
+        function startGame(difficulty) {
+            if (difficulty) {
+                currentDifficulty = difficulty;
+            }
+            
+            // 根據難度載入指定的題庫
+            radicalDict = questionBanks[currentDifficulty];
+            radicals = Object.keys(radicalDict);
+
             startMenu.classList.add('hidden');
             gameOverMenu.classList.add('hidden');
             
             score = 0;
-            correctCount = 0; // 重置答對題數
+            correctCount = 0; 
             lives = 3;
+
+            // 起始速度嚴格套用設定值，不再根據難度改變
             currentSpeed = baseSpeed; 
+
             items = [];
             floatingTexts = [];
-            
-            // 初始化行駛距離與第一次產生障礙物的距離點
             traveledDistance = 0;
             roadScrollOffset = 0;
-            nextWordSpawn = 50; // 遊戲剛開始 50px 處先產生第一波國字
-            nextItemSpawn = nextWordSpawn + (WORD_GAP / 2); // 道具精準定位在國字間距的「正中間」
+            nextWordSpawn = 50; 
+            nextItemSpawn = nextWordSpawn + (WORD_GAP / 2); 
 
             player.targetLane = 1;
             player.lane = 1;
             
             scoreEl.textContent = score;
-            correctCountEl.textContent = correctCount; // 更新畫面顯示的答對題數
+            correctCountEl.textContent = correctCount; 
             updateLivesDisplay();
             
             gameState = 'PLAYING';
@@ -723,16 +717,22 @@
         }
 
         function resetGame() {
-            startGame();
+            // 使用上一次選擇的難度重新開始
+            startGame(currentDifficulty);
+        }
+
+        function backToMenu() {
+            // 返回主選單重新選擇難度
+            gameOverMenu.classList.add('hidden');
+            startMenu.classList.remove('hidden');
+            questionTextEl.classList.add('hidden');
         }
 
         function endGame() {
             gameState = 'GAMEOVER';
             cancelAnimationFrame(animationId);
-            
             finalScoreEl.textContent = score;
-            finalCorrectEl.textContent = correctCount; // 更新結算畫面的答對題數
-            
+            finalCorrectEl.textContent = correctCount; 
             questionTextEl.classList.add('hidden');
             gameOverMenu.classList.remove('hidden');
         }
