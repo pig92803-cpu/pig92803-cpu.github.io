@@ -202,6 +202,7 @@
                         <li>撞到正確的字得分，車速變快！</li>
                         <li>撞到錯誤的字會扣除生命。</li>
                         <li>途中可以吃 🪙 <strong>金幣</strong>加分，或吃 💖 <strong>愛心</strong>補血！</li>
+                        <li>小心路上的 💣 <strong>炸彈</strong>，撞到會扣除生命！</li>
                     </ul>
                 </div><br>
                 <button class="btn" onclick="startGame()">出發！ ▶️</button>
@@ -277,9 +278,9 @@
         let canvasWidth, canvasHeight;
         const laneCount = 3;
         let laneWidth;
-        const baseSpeed = 1.5; // 速度調慢
+        const baseSpeed = 2.5; // 速度調慢
         let currentSpeed = baseSpeed;
-        const speedIncrement = 0.1; 
+        const speedIncrement = 0.25; 
         const maxSpeed = 12; // 最高速度
 
         // 物理距離設定 (取代原本不穩定的 frameCount 產生方式)
@@ -482,6 +483,8 @@
                     this.emoji = '🪙';
                 } else if (this.type === 'health') {
                     this.emoji = '💖';
+                } else if (this.type === 'bomb') {
+                    this.emoji = '💣';
                 }
             }
 
@@ -534,12 +537,17 @@
             
             // 產生道具的時機 (剛好設定在國字與國字距離的"中間")
             if (traveledDistance >= nextItemSpawn) {
-                if (Math.random() < 0.6) { // 60% 機率出道具
+                if (Math.random() < 0.7) { // 70% 機率出道具或障礙物
                     const lane = Math.floor(Math.random() * laneCount);
                     let type = 'coin';
-                    if (Math.random() < 0.2 && lives < maxLives) {
-                        type = 'health';
-                    }
+                    const randChance = Math.random();
+                    
+                    if (randChance < 0.15 && lives < maxLives) {
+                        type = 'health'; // 15% 出現愛心
+                    } else if (randChance > 0.75) {
+                        type = 'bomb';   // 25% 出現炸彈
+                    } // 其餘 60% 為金幣
+                    
                     items.push(new Item(lane, type));
                 }
                 
@@ -601,6 +609,15 @@
                         }
                         showMiniFeedback('+1 ❤️', item.x, item.y, '#ef4444'); 
                         items.splice(i, 1);
+                    } else if (item.type === 'bomb') {
+                        lives--;
+                        updateLivesDisplay();
+                        showMiniFeedback('💥 -1', item.x, item.y, '#ef4444'); 
+                        showFeedback(feedbackWrong); // 顯示畫面中間的爆炸警告
+                        items.splice(i, 1);
+                        if (lives <= 0) {
+                            endGame();
+                        }
                     }
                 } else if (item.y > canvasHeight + 60) {
                     items.splice(i, 1);
