@@ -604,7 +604,7 @@
                 this.x = (lane * laneWidth) + (laneWidth / 2);
                 this.y = -60; 
                 this.isCorrect = isCorrect;
-                this.size = 140; 
+                this.size = 50; 
                 
                 if (this.type === 'word') {
                     if (this.isCorrect) {
@@ -650,7 +650,7 @@
                     ctx.textBaseline = 'middle';
                     ctx.fillText(this.word, this.x, this.y + 2); 
                 } else {
-                    ctx.font = '45px Arial';
+                    ctx.font = '90px Arial';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(this.emoji, this.x, this.y);
